@@ -76,51 +76,13 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              {todayWalks.map((walk, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${
-                    walk.status === "completed"
-                      ? "bg-green-50 border border-green-200"
-                      : walk.status === "current"
-                        ? "bg-orange-50 border border-orange-200"
-                        : "bg-gray-50 border border-gray-200"
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      walk.status === "completed"
-                        ? "bg-green-500"
-                        : walk.status === "current"
-                          ? "bg-orange-500"
-                          : "bg-gray-300"
-                    }`}
-                  >
-                    {walk.status === "completed" ? (
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                    ) : (
-                      <Timer className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{walk.time}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {walk.duration}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600">{walk.location}</p>
-                  </div>
-                  {walk.status === "current" && (
-                    <Link href="/walk-timer">
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                        시작
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              ))}
+            <div className="flex gap-2">
+              <Link href="/walk-timer">
+                <Button className="flex-1 bg-orange-500 hover:bg-orange-600">산책 시작</Button>
+              </Link>
+              <Link href="/map">
+                <Button variant="outline" className="flex-1">주변 산책로 현황 확인하기</Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

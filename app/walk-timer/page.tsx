@@ -5,17 +5,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Play, Pause, Square, ArrowLeft, MapPin, Timer, Footprints, Heart, Droplets, Thermometer } from "lucide-react"
+import { Play, Pause, Square, ArrowLeft, MapPin, Timer, Footprints, Heart, Droplets, Thermometer, ListChecks, X, Activity } from "lucide-react"
 import Link from "next/link"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 
 export default function WalkTimerPage() {
   const [isRunning, setIsRunning] = useState(false)
   const [time, setTime] = useState(0)
   const [distance, setDistance] = useState(0)
   const [steps, setSteps] = useState(0)
+  const [checklist, setChecklist] = useState([
+    { id: 1, text: "목줄 챙기기", checked: false },
+    { id: 2, text: "물병 준비", checked: false },
+  ])
+  const [newItem, setNewItem] = useState("")
+  const [isWalking, setIsWalking] = useState(false)
 
   const targetTime = 20 * 60 // 20분 목표
   const targetDistance = 1.5 // 1.5km 목표
+
+  // 강아지 건강 상태 체크 팁 슬라이드
+  const healthTips = [
+    "산책 전 물 충분히 챙기기",
+    "발바닥 상처 확인",
+    "더운 날씨엔 짧게 산책",
+    "목줄, 인식표 꼭 착용"
+  ];
+  const [tipIndex, setTipIndex] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipIndex(idx => (idx + 1) % healthTips.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [healthTips.length]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -41,11 +64,26 @@ export default function WalkTimerPage() {
   const timeProgress = (time / targetTime) * 100
   const distanceProgress = (distance / targetDistance) * 100
 
-  const handleStart = () => setIsRunning(true)
+  const handleStart = () => {
+    setIsRunning(true)
+    setIsWalking(true)
+  }
   const handlePause = () => setIsRunning(false)
   const handleStop = () => {
     setIsRunning(false)
     // 여기서 산책 기록을 저장하는 로직 추가
+  }
+
+  const handleCheck = (id: number) => {
+    setChecklist(list => list.map(item => item.id === id ? { ...item, checked: !item.checked } : item))
+  }
+  const handleDelete = (id: number) => {
+    setChecklist(list => list.filter(item => item.id !== id))
+  }
+  const handleAdd = () => {
+    if (newItem.trim() === "") return
+    setChecklist(list => [...list, { id: Date.now(), text: newItem.trim(), checked: false }])
+    setNewItem("")
   }
 
   return (
@@ -71,6 +109,31 @@ export default function WalkTimerPage() {
       </div>
 
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+      
+ {/* 산책 체크리스트 카드 추가 */}
+        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListChecks className="w-5 h-5 text-blue-600" />
+              산책 체크리스트
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {checklist.map(item => (
+              <div key={item.id} className="flex items-center gap-2">
+                <Checkbox checked={item.checked} onCheckedChange={() => handleCheck(item.id)} />
+                <span className={item.checked ? "line-through text-gray-400" : ""}>{item.text}</span>
+                <Button size="icon" variant="ghost" onClick={() => handleDelete(item.id)}><X className="w-4 h-4" /></Button>
+              </div>
+            ))}
+            <div className="flex gap-2 mt-2">
+              <Input value={newItem} onChange={e => setNewItem(e.target.value)} placeholder="새 항목 입력" onKeyDown={e => { if (e.key === 'Enter') handleAdd() }} />
+              <Button onClick={handleAdd}>추가</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+
         {/* 메인 타이머 */}
         <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardContent className="p-8 text-center">
@@ -78,8 +141,13 @@ export default function WalkTimerPage() {
               <div className="text-6xl font-bold text-blue-600 mb-2">{formatTime(time)}</div>
               <div className="text-sm text-gray-600">목표: {formatTime(targetTime)}</div>
               <Progress value={timeProgress} className="h-3 mt-2" />
+              {/* 건강 팁 슬라이드: 산책 전/후에만 노출 */}
+              {!isWalking && (
+                <div className="transition-opacity duration-500 text-center text-base font-semibold text-green-700 mt-4 h-6 flex items-center justify-center">
+                  {healthTips[tipIndex]}
+                </div>
+              )}
             </div>
-
             <div className="flex justify-center gap-4">
               {!isRunning ? (
                 <Button size="lg" onClick={handleStart} className="bg-green-600 hover:bg-green-700 px-8">
@@ -126,46 +194,47 @@ export default function WalkTimerPage() {
           </Card>
         </div>
 
-        {/* 건강 모니터링 */}
-        <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-green-600" />
-              뽀삐 컨디션 체크
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-white rounded-lg">
-                <Heart className="w-6 h-6 text-red-500 mx-auto mb-1" />
-                <div className="text-sm font-medium">심박수</div>
-                <div className="text-lg font-bold text-red-600">정상</div>
+        {/* 상태에 따라 카드 분기 */}
+        {!isWalking ? null : (
+          <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-orange-600" />
+                달리기 중 체크 팁
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">🫁</span>
+                <div>
+                  <div className="font-medium">호흡 상태 관찰</div>
+                  <div className="text-sm text-gray-600">과도한 헥헥거림, 침 흘림 주의</div>
+                </div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <Droplets className="w-6 h-6 text-blue-500 mx-auto mb-1" />
-                <div className="text-sm font-medium">수분</div>
-                <div className="text-lg font-bold text-blue-600">충분</div>
+              <div className="flex items-start gap-3">
+                <span className="text-lg">🐾</span>
+                <div>
+                  <div className="font-medium">발바닥 확인</div>
+                  <div className="text-sm text-gray-600">상처, 뜨거운 아스팔트 주의</div>
+                </div>
               </div>
-              <div className="text-center p-3 bg-white rounded-lg">
-                <Thermometer className="w-6 h-6 text-orange-500 mx-auto mb-1" />
-                <div className="text-sm font-medium">체온</div>
-                <div className="text-lg font-bold text-orange-600">정상</div>
+              <div className="flex items-start gap-3">
+                <span className="text-lg">🦴</span>
+                <div>
+                  <div className="font-medium">무리한 점프/급정지 방지</div>
+                  <div className="text-sm text-gray-600">관절 부상 예방</div>
+                </div>
               </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium">현재 상태:</span>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  활발함 😊
-                </Badge>
+              <div className="flex items-start gap-3">
+                <span className="text-lg">💧</span>
+                <div>
+                  <div className="font-medium">수분 보충</div>
+                  <div className="text-sm text-gray-600">중간중간 물 마시기</div>
+                </div>
               </div>
-              <p className="text-sm text-gray-600">
-                뽀삐가 즐겁게 산책하고 있어요! 꼬리를 흔들며 주변을 탐색하고 있습니다.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* 현재 위치 */}
         <Card>
@@ -190,6 +259,7 @@ export default function WalkTimerPage() {
                   #안전함
                 </Badge>
                 <Badge variant="outline" className="text-xs">
+                ㄴ
                   #단거리
                 </Badge>
               </div>
