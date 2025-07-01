@@ -1,6 +1,6 @@
 
 # 댕댕로드
-당신과 애견을 위한 스마트한 산책 관리 앱 [댕댕로드](https://lv-ddld-37gzhk4uj-qkrrmsgma2-5884s-projects.vercel.app)입니다
+당신과 애견을 위한 스마트한 산책 관리 앱 [댕댕로드](https://lv-ddld.vercel.app/)입니다
 
 
 
