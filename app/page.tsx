@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Clock, Users, CheckCircle2, Star, Heart, Trophy, Timer, PawPrint } from "lucide-react"
+import { MapPin, Clock, Users, CheckCircle2, Star, Heart, Trophy, Timer, PawPrint, Calendar } from "lucide-react"
 import Link from "next/link"
 
 export default function HomePage() {
@@ -99,10 +99,20 @@ export default function HomePage() {
             </Card>
           </Link>
 
-          <Link href="/community">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+          <Link href="/calendar">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50">
               <CardContent className="p-4 text-center">
-                <Users className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                <h3 className="font-semibold text-gray-900">산책 달력</h3>
+                <p className="text-xs text-gray-600 mt-1">지금까지의 산책 기록</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/community">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50">
+              <CardContent className="p-4 text-center">
+                <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                 <h3 className="font-semibold text-gray-900">산책 커뮤니티</h3>
                 <p className="text-xs text-gray-600 mt-1">댕댕친구 만나기</p>
               </CardContent>
