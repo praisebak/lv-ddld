@@ -41,6 +41,8 @@ import {
   X,
 } from "lucide-react"
 import Link from "next/link"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { useRouter } from "next/navigation"
 
 export default function MapPage() {
   const [selectedFilter, setSelectedFilter] = useState("all")
@@ -129,14 +131,30 @@ export default function MapPage() {
     setIsWalking(false)
     setTimerActive(false)
     setTimerSeconds(0)
+    setUserPos({ x: 50, y: 50 })
+    setUserPath([{ x: 50, y: 50 }])
+    setDistance(0)
+    setTimeout(() => setUploadOpen(true), 0)
   }
 
   // 강아지 마리 수 및 혼잡도 데이터
   const dogPoints = [
-    { x: 16, y: 12, count: 12, congestion: "혼잡한 지역입니다", type: "busy" },
-    { x: 80, y: 32, count: 8, congestion: "적정 규모입니다", type: "moderate" },
-    { x: 12, y: 84, count: 3, congestion: "작은 규모입니다", type: "small" },
-  ];
+    {
+      x: 16, y: 12, count: 12, congestion: "혼잡한 지역입니다", type: "busy",
+      name: "한강공원 뚝섬지구",
+      description: "넓은 잔디밭과 강변 산책로가 있어 대형견도 자유롭게 뛸 수 있어요."
+    },
+    {
+      x: 80, y: 32, count: 8, congestion: "적정 규모입니다", type: "moderate",
+      name: "보라매공원",
+      description: "다양한 연령대의 강아지들이 모여 사회화에 좋아요."
+    },
+    {
+      x: 12, y: 84, count: 3, congestion: "작은 규모입니다", type: "small",
+      name: "동네 산책로",
+      description: "집 근처 조용한 산책로, 짧은 산책에 적합해요."
+    },
+  ]
 
   const filters = [
     { id: "all", label: "전체", icon: MapPin },
@@ -322,6 +340,91 @@ export default function MapPage() {
     };
   }, [isWalking]);
 
+  // 장소별 리뷰 데이터
+  const reviews: Record<string, { user: string, rating: number, content: string, date: string }[]> = {
+    "한강공원 뚝섬지구": [
+      { user: "김댕댕", rating: 5, content: "강아지가 정말 좋아해요!", date: "2024-06-01" },
+      { user: "이멍멍", rating: 4, content: "주차가 편리해서 자주 와요.", date: "2024-05-28" },
+      { user: "박왈왈", rating: 5, content: "잔디밭이 넓어서 대형견도 좋아요.", date: "2024-05-20" }
+    ],
+    "보라매공원": [
+      { user: "최멍멍", rating: 4, content: "사람이 많지만 사회화에 좋아요.", date: "2024-05-30" },
+      { user: "정왈왈", rating: 5, content: "산책로가 잘 정비되어 있어요.", date: "2024-05-22" }
+    ],
+    "동네 산책로": [
+      { user: "이왈왈", rating: 5, content: "조용하고 한적해서 좋아요.", date: "2024-05-25" },
+      { user: "김멍멍", rating: 4, content: "짧은 산책에 딱입니다.", date: "2024-05-18" }
+    ]
+  }
+  const [selectedPlace, setSelectedPlace] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
+
+  // 유저-개 거리 계산 함수
+  const getDistance = (a: {x: number, y: number}, b: {x: number, y: number}) => {
+    return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2))
+  }
+
+  // 산책 종료 후 사진 업로드 모달 상태 및 파일 상태
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [photo, setPhoto] = useState<File | null>(null)
+
+  const router = useRouter()
+
+  // 산책 결과 완료 핸들러
+  const handleCompleteWalk = () => {
+    // 오늘 만난 댕댕이 상세 정보 수집 (popout 기준)
+    const metDogs = nearbyDogs
+      .filter(dog => getDistance(userPos, dog.coordinates) <= 35)
+      .map(dog => ({
+        id: dog.id,
+        name: dog.name,
+        breed: dog.breed,
+        distance: dog.distance,
+        owner: dog.owner,
+        avatar: dog.avatar,
+        age: dog.age,
+        size: dog.size,
+        personality: dog.personality,
+        isFriend: false // 초기값은 친구가 아님
+      }))
+    
+    const metBreeds = Array.from(new Set(metDogs.map(dog => dog.breed)))
+    
+    // 산책 운동 데이터 계산
+    const walkTimeMinutes = timerSeconds / 60
+    const walkDistanceKm = distance / 1000
+    const pace = walkDistanceKm > 0 ? walkTimeMinutes / walkDistanceKm : 0 // 분/km
+
+    // 오늘 날짜로 운동 기록 저장
+    const today = new Date().toISOString().split('T')[0]
+    const walkData = {
+      date: today,
+      duration: timerSeconds, // 초 단위
+      distance: walkDistanceKm, // km 단위
+      pace: pace, // 분/km
+      breeds: metBreeds,
+      dogs: metDogs, // 댕댕이 상세 정보 추가
+      photo: photo ? URL.createObjectURL(photo) : null
+    }
+
+    // 업로드된 사진(미리보기 URL)과 metBreeds를 localStorage에 저장
+    if (photo) {
+      localStorage.setItem('walkPhoto', URL.createObjectURL(photo))
+    }
+    localStorage.setItem('walkBreeds', JSON.stringify(metBreeds))
+    localStorage.setItem('walkDogs', JSON.stringify(metDogs)) // 댕댕이 상세 정보 저장
+    localStorage.setItem('walkData', JSON.stringify(walkData))
+
+    // 주간/월간 통계를 위한 운동 기록 누적
+    const existingRecords = JSON.parse(localStorage.getItem('walkHistory') || '[]')
+    existingRecords.push(walkData)
+    localStorage.setItem('walkHistory', JSON.stringify(existingRecords))
+    
+    setUploadOpen(false)
+    setPhoto(null)
+    router.push('/map/result')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 w-full max-w-2xl mx-auto">
       {/* 상단 헤더 - 통합 정보 바 */}
@@ -414,46 +517,52 @@ export default function MapPage() {
               </div>
             </div>
             {/* 강아지 마커(카드) - 유저 기준 상대좌표 */}
-            {isWalking && nearbyDogs.map((dog) => (
-              <div
-                key={dog.id}
-                className="absolute z-10"
-                style={{
-                  left: `${50 + (dog.coordinates.x - userPos.x)}%`,
-                  top: `${50 + (dog.coordinates.y - userPos.y)}%`,
-                  transform: "translate(-50%,-50%)",
-                  zIndex: 10,
-                }}
-              >
+            {isWalking && nearbyDogs
+              .filter(dog => getDistance(userPos, dog.coordinates) <= 35)
+              .map((dog) => (
                 <div
-                  className={`bg-white rounded-xl shadow-lg border px-3 py-2 flex flex-col items-start gap-2 min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-200 ${selectedDogId === dog.id ? 'ring-2 ring-orange-400' : ''}`}
-                  onClick={() => setSelectedDogId(selectedDogId === dog.id ? null : dog.id)}
+                  key={dog.id}
+                  className="absolute z-10"
+                  style={{
+                    left: `${50 + (dog.coordinates.x - userPos.x)}%`,
+                    top: `${50 + (dog.coordinates.y - userPos.y)}%`,
+                    transform: "translate(-50%,-50%)",
+                    zIndex: 10,
+                  }}
                 >
-                  <div className="flex items-center gap-2 w-full">
-                    <span className="text-2xl">{dog.avatar}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 text-sm truncate">{dog.name}</div>
-                      <div className="text-xs text-gray-500 truncate">{dog.breed} • {dog.distance}</div>
+                  <div
+                    className={`bg-white rounded-xl shadow-lg border px-3 py-2 flex flex-col items-start gap-2 min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-300 ease-out scale-90 ${selectedDogId === dog.id ? 'ring-2 ring-orange-400' : ''} popout-animate`}
+                    onClick={() => setSelectedDogId(selectedDogId === dog.id ? null : dog.id)}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="text-2xl">{dog.avatar}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 text-sm truncate">{dog.name}</div>
+                        <div className="text-xs text-gray-500 truncate">{dog.breed} • {dog.distance}</div>
+                      </div>
                     </div>
+                    {selectedDogId === dog.id && (
+                      <div className="w-full mt-2 flex flex-col gap-2">
+                        <div className="text-xs text-gray-600">{dog.age} • {dog.size} • {dog.owner}님</div>
+                        <div className="text-xs text-gray-500 italic">"{dog.personality}"</div>
+                        <Button size="sm" variant="outline" className="w-full text-xs mt-1">
+                          인사하기
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  {selectedDogId === dog.id && (
-                    <div className="w-full mt-2 flex flex-col gap-2">
-                      <div className="text-xs text-gray-600">{dog.age} • {dog.size} • {dog.owner}님</div>
-                      <div className="text-xs text-gray-500 italic">"{dog.personality}"</div>
-                      <Button size="sm" variant="outline" className="w-full text-xs mt-1">
-                        인사하기
-                      </Button>
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))}
+              ))}
             {/* dogPoints 등 다른 마커도 동일하게 상대좌표로 렌더링 필요 */}
             {dogPoints.map((pt, i) => (
               <div
                 key={i}
                 className="absolute group cursor-pointer"
                 style={{ left: `${50 + (pt.x - userPos.x)}%`, top: `${50 + (pt.y - userPos.y)}%`, transform: "translate(-50%,-50%)" }}
+                onClick={() => {
+                  setSelectedPlace(pt.name)
+                  setReviewOpen(true)
+                }}
               >
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${getColor(pt.type)} group-hover:scale-110 transition`}>
                   <div className="flex flex-col items-center">
@@ -462,8 +571,10 @@ export default function MapPage() {
                   </div>
                 </div>
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 pointer-events-none transition z-20 flex flex-col items-center">
-                  <div className="px-4 py-2 rounded-lg shadow-lg bg-white text-gray-800 text-xs font-semibold border whitespace-nowrap">
-                    {pt.congestion}
+                  <div className="px-4 py-2 rounded-lg shadow-lg bg-white text-gray-800 text-xs font-semibold border min-w-[180px] max-w-xs text-left">
+                    <div className="font-bold text-sm mb-1">{pt.name}</div>
+                    <div className="text-xs text-gray-500 mb-1">{pt.congestion} <span className="ml-1">({pt.count}마리)</span></div>
+                    <div className="text-xs text-gray-600">{pt.description}</div>
                   </div>
                   <div className="w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white mx-auto -mt-1"></div>
                 </div>
@@ -477,10 +588,6 @@ export default function MapPage() {
             <Button size="icon" variant="outline" onClick={() => moveUser(-2, 0)}><span>←</span></Button>
             <Button size="icon" variant="outline" onClick={() => moveUser(2, 0)}><span>→</span></Button>
             <Button size="icon" variant="outline" onClick={() => moveUser(0, 2)}><span>↓</span></Button>
-          </div>
-          {/* 이동 거리 표시 */}
-          <div className="absolute left-4 top-4 bg-white/80 rounded-lg px-3 py-1 text-blue-700 font-semibold shadow z-20 text-sm">
-            이동 거리: {(distance/1000).toFixed(2)} km
           </div>
 
           {/* 지도 컨트롤 */}
@@ -528,7 +635,7 @@ export default function MapPage() {
 
         {/* 산책 중 타이머 오버레이 */}
         {isWalking && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-lg p-4 shadow-lg border">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-lg p-4 shadow-lg border z-30" style={{ pointerEvents: 'auto' }}>
             <div className="text-center">
               <div className="text-2xl font-bold text-gray-900 mb-2">
                 {formatTime(timerSeconds)}
@@ -543,7 +650,7 @@ export default function MapPage() {
                     <Play className="w-4 h-4" />
                   </Button>
                 )}
-                <Button size="sm" variant="outline" onClick={stopWalk}>
+                <Button size="sm" variant="outline" onClick={stopWalk} type="button" disabled={false}>
                   <Square className="w-4 h-4" />
                 </Button>
               </div>
@@ -896,6 +1003,53 @@ export default function MapPage() {
           </div>
         </div>
       )}
+
+      {/* 장소별 리뷰 모달 */}
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent>
+          <DialogTitle>{selectedPlace} 리뷰</DialogTitle>
+          <ul className="mt-2 space-y-3">
+            {(selectedPlace && reviews[selectedPlace] && reviews[selectedPlace].length > 0) ? (
+              reviews[selectedPlace].map((r, i) => (
+                <li key={i} className="p-3 border rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-sm">{r.user}</span>
+                    <span className="text-yellow-500 text-xs">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{r.date}</span>
+                  </div>
+                  <div className="text-sm text-gray-800">{r.content}</div>
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-gray-500">아직 리뷰가 없습니다.</li>
+            )}
+          </ul>
+        </DialogContent>
+      </Dialog>
+
+      {/* 산책 종료 후 사진 업로드 모달 */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent>
+          <DialogTitle>오늘 산책이 끝났습니다!</DialogTitle>
+          <DialogDescription>강아지와의 로그를 남겨보는것은 어떨까요?</DialogDescription>
+          <input
+            type="file"
+            accept="image/*"
+            className="mt-4"
+            onChange={e => setPhoto(e.target.files?.[0] ?? null)}
+          />
+          {photo && (
+            <img
+              src={URL.createObjectURL(photo)}
+              alt="미리보기"
+              className="mt-2 max-h-40 rounded mx-auto"
+            />
+          )}
+          <Button className="mt-4 w-full" onClick={handleCompleteWalk}>
+            완료
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       {/* 하단 여백 */}
       <div className="h-20"></div>

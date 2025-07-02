@@ -5,12 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Clock, Users, CheckCircle2, Star, Heart, Trophy, Timer, PawPrint, Calendar, Play } from "lucide-react"
+import { MapPin, Clock, Users, CheckCircle2, Star, Heart, Trophy, Timer, PawPrint, Calendar, Play, CloudRain } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 export default function HomePage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [walkProgress, setWalkProgress] = useState(65)
+  const { toast } = useToast()
+  const router = useRouter()
+  const isRain = true // 프로토타입: 항상 비
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -25,11 +32,24 @@ export default function HomePage() {
     streak: 7,
   }
 
+  const handleStartWalk = () => {
+    if (isRain) {
+      setOpen(true)
+    } else {
+      router.push("/map")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-md mx-auto px-4 py-4">
+          {/* 날씨 위젯 */}
+          <div className="flex items-center gap-2 mb-2">
+            <CloudRain className="w-5 h-5 text-blue-400" />
+            <span className="text-blue-600 font-medium">비</span>
+          </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
@@ -76,12 +96,17 @@ export default function HomePage() {
             </div>
 
             {/* 메인 CTA - 지도로 이동 */}
-            <Link href="/map" className="block">
-              <Button size="lg" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4">
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogContent className="text-center">
+                <DialogTitle>비가 오고 있어요</DialogTitle>
+                <DialogDescription>우비, 수건을 챙기셨나요?</DialogDescription>
+                <Button className="mt-4 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold" onClick={() => router.push("/map")}>준비완료!</Button>
+              </DialogContent>
+              <Button size="lg" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4" onClick={handleStartWalk}>
                 <MapPin className="w-5 h-5 mr-2" />
                 지도에서 산책 시작하기
               </Button>
-            </Link>
+            </Dialog>
             
             <div className="text-center">
               <p className="text-xs text-gray-500">
