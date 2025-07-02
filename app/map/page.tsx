@@ -76,6 +76,24 @@ export default function MapPage() {
     badges: ["첫산책", "연속3일", "10km달성"],
   })
 
+  // 유저 위치 및 이동 거리 상태
+  const [userPos, setUserPos] = useState({ x: 50, y: 50 }) // 중앙에서 시작
+  const [userPath, setUserPath] = useState([{ x: 50, y: 50 }])
+  const [distance, setDistance] = useState(0)
+
+  // 이동 시뮬레이션 (방향 버튼)
+  const moveUser = (dx: number, dy: number) => {
+    setUserPos(prev => {
+      const newPos = { x: Math.max(0, Math.min(100, prev.x + dx)), y: Math.max(0, Math.min(100, prev.y + dy)) }
+      setUserPath(path => [...path, newPos])
+      // 거리 계산 (1% = 10m)
+      const last = prev
+      const d = Math.sqrt(Math.pow(newPos.x - last.x, 2) + Math.pow(newPos.y - last.y, 2)) * 10
+      setDistance(dist => dist + d)
+      return newPos
+    })
+  }
+
   // 타이머 효과
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -271,11 +289,44 @@ export default function MapPage() {
     }
   };
 
+  // 산책 팁/주의사항 메시지
+  const walkTips = [
+    "강아지가 너무 핵핵거리지 않는지 확인하면서 달려요!",
+    "산책 중 물을 자주 챙겨주세요.",
+    "더운 날씨엔 아스팔트 온도도 체크!",
+    "목줄이 잘 채워졌는지 다시 한 번 확인!",
+    "배변봉투 꼭 챙기셨나요?",
+    "다른 강아지와 만날 땐 천천히 접근해요.",
+    "강아지가 피곤해하면 잠시 쉬어가요.",
+    "산책 후 발을 깨끗이 닦아주세요.",
+    "사람 많은 곳에서는 짧은 리드줄 사용!",
+    "강아지의 표정과 호흡을 자주 관찰하세요."
+  ];
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // 산책 중 랜덤 알람(토스트) 표시
+  useEffect(() => {
+    if (!isWalking) return;
+    let timeout: NodeJS.Timeout;
+    let interval: NodeJS.Timeout;
+    const showToast = () => {
+      const msg = walkTips[Math.floor(Math.random() * walkTips.length)];
+      setToastMsg(msg);
+      timeout = setTimeout(() => setToastMsg(null), 4000);
+    };
+    showToast(); // 산책 시작 시 바로 한 번
+    interval = setInterval(showToast, 30000); // 30초마다
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [isWalking]);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full max-w-2xl mx-auto">
       {/* 상단 헤더 - 통합 정보 바 */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-20">
-        <div className="w-full max-w-lg mx-auto px-4 py-3">
+      <div className="bg-white shadow-sm border-b sticky top-0 z-20 w-full max-w-2xl mx-auto">
+        <div className="w-full px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link href="/">
@@ -311,84 +362,126 @@ export default function MapPage() {
       {/* 메인 지도 영역 */}
       <div className="relative">
         {/* 지도 컨테이너 */}
-        <div className="h-96 bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50 relative">
-          {/* 지도 배경 패턴 */}
-          <div className="absolute inset-0 opacity-30">
-            <div className="w-full h-full" style={{
-              backgroundImage: `
-                linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
-                linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px)
-              `,
-              backgroundSize: '20px 20px'
-            }}></div>
-          </div>
-
-          {/* 도로 네트워크 */}
-          <div className="absolute inset-0">
-            <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-300 opacity-40"></div>
-            <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-gray-300 opacity-40"></div>
-            <div className="absolute top-1/4 left-0 right-0 h-0.5 bg-gray-200 opacity-30"></div>
-            <div className="absolute top-3/4 left-0 right-0 h-0.5 bg-gray-200 opacity-30"></div>
-            <div className="absolute top-0 bottom-0 left-1/4 w-0.5 bg-gray-200 opacity-30"></div>
-            <div className="absolute top-0 bottom-0 left-3/4 w-0.5 bg-gray-200 opacity-30"></div>
-          </div>
-
-          {/* 강아지 마리 수 원 표시 */}
-          {dogPoints.map((pt, i) => (
-            <div
-              key={i}
-              className="absolute group cursor-pointer"
-              style={{ left: `${pt.x}%`, top: `${pt.y}%`, transform: "translate(-50%,-50%)" }}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${getColor(pt.type)} group-hover:scale-110 transition`}>
-                <div className="flex flex-col items-center">
-                  {getIcon(pt.type)}
-                  <span className="text-sm">{pt.count}</span>
-                </div>
-              </div>
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 pointer-events-none transition z-20 flex flex-col items-center">
-                <div className="px-4 py-2 rounded-lg shadow-lg bg-white text-gray-800 text-xs font-semibold border whitespace-nowrap">
-                  {pt.congestion}
-                </div>
-                <div className="w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white mx-auto -mt-1"></div>
-              </div>
+        <div className="h-[75vh] bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50 relative w-full max-w-2xl mx-auto overflow-hidden">
+          {/* 지도 뷰포트: 유저가 항상 중앙에 오도록 transform */}
+          <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 1 }}>
+            {/* 배경 패턴 */}
+            <div className="absolute inset-0 opacity-30">
+              <div className="w-full h-full" style={{
+                backgroundImage: `
+                  linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
+                  linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px)
+                `,
+                backgroundSize: '20px 20px'
+              }}></div>
             </div>
-          ))}
+            {/* 도로 네트워크 */}
+            <div className="absolute inset-0">
+              <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-300 opacity-40"></div>
+              <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-gray-300 opacity-40"></div>
+              <div className="absolute top-1/4 left-0 right-0 h-0.5 bg-gray-200 opacity-30"></div>
+              <div className="absolute top-3/4 left-0 right-0 h-0.5 bg-gray-200 opacity-30"></div>
+              <div className="absolute top-0 bottom-0 left-1/4 w-0.5 bg-gray-200 opacity-30"></div>
+              <div className="absolute top-0 bottom-0 left-3/4 w-0.5 bg-gray-200 opacity-30"></div>
+            </div>
+          </div>
 
-          {/* 산책 중인 강아지들 카드 마커 */}
-          {isWalking && nearbyDogs.map((dog) => (
+          {/* 지도 요소(마커, 반경 등) - 유저 기준 상대좌표 */}
+          <div className="absolute inset-0" style={{ zIndex: 2 }}>
+            {/* 반경 원 (200m) */}
             <div
-              key={dog.id}
+              className="absolute rounded-full border-2 border-blue-300 bg-blue-200/20 pointer-events-none"
+              style={{
+                left: `calc(50% - 100px)`,
+                top: `calc(50% - 100px)`,
+                width: 200,
+                height: 200,
+                zIndex: 2,
+              }}
+            />
+            {/* 유저 위치 마커 (항상 중앙) */}
+            <div
               className="absolute z-10"
-              style={{ 
-                left: `${dog.coordinates.x}%`, 
-                top: `${dog.coordinates.y}%`, 
-                transform: "translate(-50%,-50%)" 
+              style={{
+                left: `50%`,
+                top: `50%`,
+                transform: "translate(-50%,-50%)",
+                zIndex: 3,
               }}
             >
-              <div
-                className={`bg-white rounded-xl shadow-lg border px-3 py-2 flex flex-col items-start gap-2 min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-200 ${selectedDogId === dog.id ? 'ring-2 ring-orange-400' : ''}`}
-                onClick={() => setSelectedDogId(selectedDogId === dog.id ? null : dog.id)}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <span className="text-2xl">{dog.avatar}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-sm truncate">{dog.name}</div>
-                    <div className="text-xs text-gray-500 truncate">{dog.breed} • {dog.distance}</div>
-                  </div>
-                </div>
-                {selectedDogId === dog.id && (
-                  <div className="w-full mt-2 flex flex-col gap-2">
-                    <div className="text-xs text-gray-600">{dog.age} • {dog.size} • {dog.owner}님</div>
-                    <div className="text-xs text-gray-500 italic">"{dog.personality}"</div>
-                    <Button size="sm" variant="outline" className="w-full text-xs mt-1">
-                      인사하기
-                    </Button>
-                  </div>
-                )}
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl font-bold border-4 border-white shadow-lg">
+                🧑‍🦱
               </div>
             </div>
-          ))}
+            {/* 강아지 마커(카드) - 유저 기준 상대좌표 */}
+            {isWalking && nearbyDogs.map((dog) => (
+              <div
+                key={dog.id}
+                className="absolute z-10"
+                style={{
+                  left: `${50 + (dog.coordinates.x - userPos.x)}%`,
+                  top: `${50 + (dog.coordinates.y - userPos.y)}%`,
+                  transform: "translate(-50%,-50%)",
+                  zIndex: 10,
+                }}
+              >
+                <div
+                  className={`bg-white rounded-xl shadow-lg border px-3 py-2 flex flex-col items-start gap-2 min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-200 ${selectedDogId === dog.id ? 'ring-2 ring-orange-400' : ''}`}
+                  onClick={() => setSelectedDogId(selectedDogId === dog.id ? null : dog.id)}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <span className="text-2xl">{dog.avatar}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-900 text-sm truncate">{dog.name}</div>
+                      <div className="text-xs text-gray-500 truncate">{dog.breed} • {dog.distance}</div>
+                    </div>
+                  </div>
+                  {selectedDogId === dog.id && (
+                    <div className="w-full mt-2 flex flex-col gap-2">
+                      <div className="text-xs text-gray-600">{dog.age} • {dog.size} • {dog.owner}님</div>
+                      <div className="text-xs text-gray-500 italic">"{dog.personality}"</div>
+                      <Button size="sm" variant="outline" className="w-full text-xs mt-1">
+                        인사하기
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {/* dogPoints 등 다른 마커도 동일하게 상대좌표로 렌더링 필요 */}
+            {dogPoints.map((pt, i) => (
+              <div
+                key={i}
+                className="absolute group cursor-pointer"
+                style={{ left: `${50 + (pt.x - userPos.x)}%`, top: `${50 + (pt.y - userPos.y)}%`, transform: "translate(-50%,-50%)" }}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-lg ${getColor(pt.type)} group-hover:scale-110 transition`}>
+                  <div className="flex flex-col items-center">
+                    {getIcon(pt.type)}
+                    <span className="text-sm">{pt.count}</span>
+                  </div>
+                </div>
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 pointer-events-none transition z-20 flex flex-col items-center">
+                  <div className="px-4 py-2 rounded-lg shadow-lg bg-white text-gray-800 text-xs font-semibold border whitespace-nowrap">
+                    {pt.congestion}
+                  </div>
+                  <div className="w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white mx-auto -mt-1"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 이동 버튼 UI */}
+          <div className="absolute left-1/2 bottom-4 -translate-x-1/2 flex gap-2 z-20">
+            <Button size="icon" variant="outline" onClick={() => moveUser(0, -2)}><span>↑</span></Button>
+            <Button size="icon" variant="outline" onClick={() => moveUser(-2, 0)}><span>←</span></Button>
+            <Button size="icon" variant="outline" onClick={() => moveUser(2, 0)}><span>→</span></Button>
+            <Button size="icon" variant="outline" onClick={() => moveUser(0, 2)}><span>↓</span></Button>
+          </div>
+          {/* 이동 거리 표시 */}
+          <div className="absolute left-4 top-4 bg-white/80 rounded-lg px-3 py-1 text-blue-700 font-semibold shadow z-20 text-sm">
+            이동 거리: {(distance/1000).toFixed(2)} km
+          </div>
 
           {/* 지도 컨트롤 */}
           <div className="absolute top-4 right-4 space-y-2">
@@ -419,9 +512,9 @@ export default function MapPage() {
           </div>
         </div>
 
-        {/* 플로팅 산책 시작 버튼 */}
+        {/* 플로팅 산책 시작 버튼 - 오른쪽 하단으로 이동 */}
         {!isWalking && (
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
+          <div className="absolute bottom-6 right-6 z-30">
             <Button 
               size="lg" 
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3 rounded-full shadow-lg"
@@ -460,20 +553,30 @@ export default function MapPage() {
                   목표: {walkGoal}분 ({Math.round((timerSeconds / (walkGoal * 60)) * 100)}%)
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t">
-                <div className="text-xs text-gray-500">
-                  근처에 {nearbyDogs.length}마리의 댕댕이가 있어요!
-                </div>
+              {/* 이동거리 및 페이스 */}
+              <div className="flex justify-center gap-4 mt-3 text-xs text-blue-700 font-semibold">
+                <div>이동거리: {(distance/1000).toFixed(2)} km</div>
+                <div>페이스: {distance > 0 ? ((timerSeconds/60)/(distance/1000)).toFixed(1) : '--'} 분/km</div>
               </div>
             </div>
           </div>
         )}
 
+        {/* 실시간 산책 팁/토스트 알람 */}
+        {toastMsg && (
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[100] bg-yellow-50 border border-yellow-300 rounded-xl shadow-lg px-5 py-3 flex items-center gap-2 animate-fade-in">
+            <span className="text-yellow-600 text-lg">⚠️</span>
+            <span className="text-sm font-medium text-gray-800">{toastMsg}</span>
+            <Button size="icon" variant="ghost" className="ml-2" onClick={() => setToastMsg(null)}>
+              <X className="w-4 h-4 text-yellow-600" />
+            </Button>
+          </div>
+        )}
 
       </div>
 
-      {/* 하단 탭 네비게이션 */}
-      <div className="bg-white border-t">
+      {/* 하단 탭 네비게이션 - 숨김 처리 */}
+      <div className="hidden">
         <div className="max-w-lg mx-auto">
           <div className="flex">
             <Button
