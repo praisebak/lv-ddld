@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Clock, Users, CheckCircle2, Star, Heart, Trophy, Timer, PawPrint, Calendar } from "lucide-react"
+import { MapPin, Clock, Users, CheckCircle2, Star, Heart, Trophy, Timer, PawPrint, Calendar, Play } from "lucide-react"
 import Link from "next/link"
 
 export default function HomePage() {
@@ -17,17 +17,12 @@ export default function HomePage() {
     return () => clearInterval(timer)
   }, [])
 
-  const todayWalks = [
-    { time: "08:00", duration: "30분", status: "completed", location: "한강공원" },
-    { time: "14:00", duration: "20분", status: "current", location: "동네 산책로" },
-    { time: "19:00", duration: "40분", status: "pending", location: "보라매공원" },
-  ]
-
   const weeklyStats = {
     totalWalks: 12,
     totalTime: "6시간 30분",
     level: 5,
     points: 1250,
+    streak: 7,
   }
 
   return (
@@ -50,25 +45,29 @@ export default function HomePage() {
                 <Trophy className="w-3 h-3 mr-1" />
                 Lv.{weeklyStats.level}
               </Badge>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                🔥 {weeklyStats.streak}일
+              </Badge>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* AI 추천 산책 플래너 */}
-        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        {/* 메인 산책 시작 카드 - 지도로 바로 이동 */}
+        <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="w-5 h-5 text-blue-600" />
-              오늘의 맞춤 산책 플래너
+              <Play className="w-5 h-5 text-orange-600" />
+              산책 시작하기
             </CardTitle>
+            <p className="text-sm text-gray-600">지도에서 실시간으로 모든 정보를 확인하세요</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-white rounded-lg p-4 border border-blue-100">
+            <div className="bg-white rounded-lg p-4 border border-orange-100">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">진행률</span>
-                <span className="text-sm text-blue-600 font-semibold">{walkProgress}%</span>
+                <span className="text-sm font-medium text-gray-600">오늘 진행률</span>
+                <span className="text-sm text-orange-600 font-semibold">{walkProgress}%</span>
               </div>
               <Progress value={walkProgress} className="h-2 mb-3" />
               <p className="text-sm text-gray-700">
@@ -76,93 +75,68 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="flex gap-2">
-              <Link href="/walk-timer">
-                <Button className="flex-1 bg-orange-500 hover:bg-orange-600">산책 시작</Button>
-              </Link>
-              <Link href="/map">
-                <Button variant="outline" className="flex-1">주변 산책로 현황 확인하기</Button>
-              </Link>
+            {/* 메인 CTA - 지도로 이동 */}
+            <Link href="/map" className="block">
+              <Button size="lg" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4">
+                <MapPin className="w-5 h-5 mr-2" />
+                지도에서 산책 시작하기
+              </Button>
+            </Link>
+            
+            <div className="text-center">
+              <p className="text-xs text-gray-500">
+                지도에서 주변 산책로, 댕댕이 현황, 타이머, 체크리스트를 모두 확인할 수 있어요!
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* 주요 기능 버튼들 */}
-        <div className="grid grid-cols-2 gap-4">
-          <Link href="/map">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
-              <CardContent className="p-4 text-center">
-                <MapPin className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900">실시간 산책지도</h3>
-                <p className="text-xs text-gray-600 mt-1">근처 산책로 & 댕댕이 현황</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/calendar">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50">
-              <CardContent className="p-4 text-center">
-                <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900">산책 달력</h3>
-                <p className="text-xs text-gray-600 mt-1">지금까지의 산책 기록</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/community">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50">
-              <CardContent className="p-4 text-center">
-                <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900">산책 커뮤니티</h3>
-                <p className="text-xs text-gray-600 mt-1">댕댕친구 만나기</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/checklist">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50">
-              <CardContent className="p-4 text-center">
-                <CheckCircle2 className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900">산책 체크리스트</h3>
-                <p className="text-xs text-gray-600 mt-1">잊지 말아야 할 것들</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/profile">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow border-2 border-red-200 bg-gradient-to-br from-red-50 to-pink-50">
-              <CardContent className="p-4 text-center">
-                <Heart className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900">내 댕댕이</h3>
-                <p className="text-xs text-gray-600 mt-1">프로필 & 건강관리</p>
-              </CardContent>
-            </Card>
-          </Link>
+        {/* 퀵 스탯 카드 */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="text-center p-4">
+            <div className="text-2xl font-bold text-blue-600">{weeklyStats.totalWalks}</div>
+            <div className="text-xs text-gray-600">이번 주 산책</div>
+          </Card>
+          <Card className="text-center p-4">
+            <div className="text-2xl font-bold text-green-600">{weeklyStats.streak}</div>
+            <div className="text-xs text-gray-600">연속 산책일</div>
+          </Card>
+          <Card className="text-center p-4">
+            <div className="text-2xl font-bold text-yellow-600">{weeklyStats.points}</div>
+            <div className="text-xs text-gray-600">보유 포인트</div>
+          </Card>
         </div>
 
-        {/* 이번 주 통계 */}
+        {/* 보조 기능 - 빠른 접근 */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-500" />
-              이번 주 산책 현황
-            </CardTitle>
+            <CardTitle className="text-lg">빠른 접근</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{weeklyStats.totalWalks}</div>
-                <div className="text-sm text-gray-600">총 산책 횟수</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{weeklyStats.totalTime}</div>
-                <div className="text-sm text-gray-600">총 산책 시간</div>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-center">
-              <div className="text-lg font-bold text-yellow-600">{weeklyStats.points} 포인트</div>
-              <div className="text-sm text-gray-600">다음 레벨까지 250 포인트 남음!</div>
-            </div>
+          <CardContent className="grid grid-cols-2 gap-3">
+            <Link href="/calendar">
+              <Button variant="outline" className="w-full justify-start">
+                <Calendar className="w-4 h-4 mr-2" />
+                산책 기록
+              </Button>
+            </Link>
+            <Link href="/community">
+              <Button variant="outline" className="w-full justify-start">
+                <Users className="w-4 h-4 mr-2" />
+                커뮤니티
+              </Button>
+            </Link>
+            <Link href="/profile">
+              <Button variant="outline" className="w-full justify-start">
+                <Heart className="w-4 h-4 mr-2" />
+                내 댕댕이
+              </Button>
+            </Link>
+            <Link href="/checklist">
+              <Button variant="outline" className="w-full justify-start">
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                체크리스트
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -180,7 +154,7 @@ export default function HomePage() {
         </Card>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - 지도 중심으로 재구성 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="max-w-md mx-auto px-4 py-2">
           <div className="flex justify-around">
@@ -189,9 +163,12 @@ export default function HomePage() {
               <span className="text-xs">홈</span>
             </Button>
             <Link href="/map">
-              <Button variant="ghost" className="flex-col gap-1 h-auto py-2">
-                <MapPin className="w-5 h-5" />
-                <span className="text-xs">지도</span>
+              <Button variant="ghost" className="flex-col gap-1 h-auto py-2 relative">
+                <div className="relative">
+                  <MapPin className="w-5 h-5" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                </div>
+                <span className="text-xs font-medium">산책지도</span>
               </Button>
             </Link>
             <Link href="/community">
