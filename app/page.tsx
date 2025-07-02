@@ -181,7 +181,7 @@ export default function HomePage() {
               <Button variant="ghost" className="flex-col gap-1 h-auto py-2">
                 <Heart className="w-5 h-5" />
                 <span className="text-xs">프로필</span>
-              </Button>
+              </Button> 
             </Link>
           </div>
         </div>

@@ -49,6 +49,8 @@ export default function MapPage() {
   const [activeTab, setActiveTab] = useState("map")
   const [showChecklistModal, setShowChecklistModal] = useState(false)
   const [showNearbyDogs, setShowNearbyDogs] = useState(false)
+  const [hoveredDog, setHoveredDog] = useState<number | null>(null)
+  const [selectedDogId, setSelectedDogId] = useState<number | null>(null)
 
   // 산책 타이머 상태
   const [timerActive, setTimerActive] = useState(false)
@@ -96,12 +98,9 @@ export default function MapPage() {
   }
 
   const completeChecklist = () => {
-    const allCompleted = checklistItems.every(item => item.completed)
-    if (allCompleted) {
-      setShowChecklistModal(false)
-      setIsWalking(true)
-      setTimerActive(true)
-    }
+    setShowChecklistModal(false)
+    setIsWalking(true)
+    setTimerActive(true)
   }
 
   const pauseWalk = () => {
@@ -182,7 +181,8 @@ export default function MapPage() {
       personality: "활발하고 친화적이에요",
       isWalking: true,
       walkStartTime: "14:30",
-      location: "한강공원 뚝섬지구"
+      location: "한강공원 뚝섬지구",
+      coordinates: { x: 25, y: 20 }
     },
     { 
       id: 2,
@@ -197,7 +197,8 @@ export default function MapPage() {
       personality: "장난기 많고 똑똑해요",
       isWalking: true,
       walkStartTime: "14:25",
-      location: "보라매공원"
+      location: "보라매공원",
+      coordinates: { x: 70, y: 40 }
     },
     { 
       id: 3,
@@ -212,7 +213,8 @@ export default function MapPage() {
       personality: "차분하고 순한 성격이에요",
       isWalking: true,
       walkStartTime: "14:20",
-      location: "동네 산책로"
+      location: "동네 산책로",
+      coordinates: { x: 15, y: 75 }
     },
     { 
       id: 4,
@@ -227,7 +229,8 @@ export default function MapPage() {
       personality: "조용하고 소심해요",
       isWalking: true,
       walkStartTime: "14:35",
-      location: "한강공원 뚝섬지구"
+      location: "한강공원 뚝섬지구",
+      coordinates: { x: 30, y: 25 }
     },
     { 
       id: 5,
@@ -242,7 +245,8 @@ export default function MapPage() {
       personality: "에너지 넘치고 장난기 많아요",
       isWalking: true,
       walkStartTime: "14:15",
-      location: "보라매공원"
+      location: "보라매공원",
+      coordinates: { x: 75, y: 35 }
     }
   ]
 
@@ -351,6 +355,41 @@ export default function MapPage() {
             </div>
           ))}
 
+          {/* 산책 중인 강아지들 카드 마커 */}
+          {isWalking && nearbyDogs.map((dog) => (
+            <div
+              key={dog.id}
+              className="absolute z-10"
+              style={{ 
+                left: `${dog.coordinates.x}%`, 
+                top: `${dog.coordinates.y}%`, 
+                transform: "translate(-50%,-50%)" 
+              }}
+            >
+              <div
+                className={`bg-white rounded-xl shadow-lg border px-3 py-2 flex flex-col items-start gap-2 min-w-[120px] max-w-[200px] cursor-pointer transition-all duration-200 ${selectedDogId === dog.id ? 'ring-2 ring-orange-400' : ''}`}
+                onClick={() => setSelectedDogId(selectedDogId === dog.id ? null : dog.id)}
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <span className="text-2xl">{dog.avatar}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-sm truncate">{dog.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{dog.breed} • {dog.distance}</div>
+                  </div>
+                </div>
+                {selectedDogId === dog.id && (
+                  <div className="w-full mt-2 flex flex-col gap-2">
+                    <div className="text-xs text-gray-600">{dog.age} • {dog.size} • {dog.owner}님</div>
+                    <div className="text-xs text-gray-500 italic">"{dog.personality}"</div>
+                    <Button size="sm" variant="outline" className="w-full text-xs mt-1">
+                      인사하기
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
           {/* 지도 컨트롤 */}
           <div className="absolute top-4 right-4 space-y-2">
             <div className="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg">
@@ -422,72 +461,15 @@ export default function MapPage() {
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => setShowNearbyDogs(!showNearbyDogs)}
-                  className="text-xs"
-                >
-                  <Users className="w-3 h-3 mr-1" />
-                  근처 댕댕이 {nearbyDogs.length}마리
-                </Button>
+                <div className="text-xs text-gray-500">
+                  근처에 {nearbyDogs.length}마리의 댕댕이가 있어요!
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* 산책 중 주변 강아지들 프로필 */}
-        {isWalking && showNearbyDogs && (
-          <div className="absolute bottom-20 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border max-h-96 overflow-y-auto">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">근처에서 산책중인 댕댕이들</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowNearbyDogs(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              <div className="space-y-3">
-                {nearbyDogs.map((dog) => (
-                  <div key={dog.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                      {dog.avatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-medium text-gray-900">{dog.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {dog.breed}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                          {dog.size}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-600 space-y-1">
-                        <div>{dog.age} • {dog.owner}님</div>
-                        <div>{dog.distance} • {dog.mood}</div>
-                        <div className="text-purple-600">{dog.location}</div>
-                        <div className="text-gray-500 italic">"{dog.personality}"</div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button size="sm" variant="outline" className="text-xs">
-                        <MessageCircle className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs">
-                        <Heart className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* 하단 탭 네비게이션 */}
@@ -803,7 +785,6 @@ export default function MapPage() {
                 <Button
                   className="flex-1 bg-orange-500 hover:bg-orange-600"
                   onClick={completeChecklist}
-                  disabled={!checklistItems.every(item => item.completed)}
                 >
                   산책 시작하기
                 </Button>
